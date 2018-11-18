@@ -1,6 +1,8 @@
 #!/bin/bash
 
-set -x
+if [[ -n "$DEBUG" ]]; then
+  set -x
+fi
 
 if [[ -z "$BUILD_DIR" ]]; then
   echo "You should set BUILD_DIR."
