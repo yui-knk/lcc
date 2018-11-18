@@ -7,7 +7,7 @@ all: build
 
 build:
 	mkdir -p $(BUILD_DIR)
-	gcc -o $(BUILD_DIR)/lcc $(SRC_DIR)/main.c
+	gcc -Wall -o $(BUILD_DIR)/lcc $(SRC_DIR)/main.c
 
 clean:
 	rm -rf $(BUILD_DIR)
