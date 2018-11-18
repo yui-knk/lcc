@@ -70,7 +70,7 @@ tokenize(char *p) {
             continue;
         }
 
-        if (*p == '+' || *p == '-') {
+        if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')') {
             tokens[i].ty = *p;
             tokens[i].input = p;
             p++;
@@ -194,11 +194,43 @@ term()
     errors("Unexpected token '%s' is given.", pos);
 }
 
+static void
+gen(NODE *node)
+{
+    if (node->ty == ND_NUM) {
+        printf("        push %d\n", node->val);
+        return;
+    }
+
+    gen(node->lhs);
+    gen(node->rhs);
+
+    printf("        pop rdi\n");
+    printf("        pop rax\n");
+
+    switch (node->ty) {
+      case '+':
+        printf("        add rax, rdi\n");
+        break;
+      case '-':
+        printf("        sub rax, rdi\n");
+        break;
+      case '*':
+        printf("        mul rdi\n");
+        break;
+      case '/':
+        printf("        mov rdx, 0\n");
+        printf("        div rdi\n");
+        break;
+    }
+
+    printf("        push rax\n");
+}
 
 int
 main(int argc, char** argv)
 {
-    int i;
+    NODE *node;
 
     if (argc != 2) {
         fprintf(stderr, "One argument should be passed (%d is passed).\n", argc - 1);
@@ -206,45 +238,15 @@ main(int argc, char** argv)
     }
 
     tokenize(argv[1]);
-    // NODE *node = expr();
-    expr();
+    node = expr();
 
     printf(".intel_syntax noprefix\n");
     printf(".global main\n\n");
     printf("main:\n");
 
-    if (tokens[0].ty != TK_NUM) error(0);
-    printf("        mov rax, %d\n", tokens[0].val);
+    gen(node);
 
-    i = 1;
-
-    while (tokens[i].ty != TK_EOF) {
-        if (tokens[i].ty == '+') {
-            // Consume '+'
-            i++;
-
-            if (tokens[i].ty != TK_NUM) error(i);
-            printf("        add rax, %d\n", tokens[i].val);
-            // Consume NUM
-            i++;
-            continue;
-        }
-
-        if (tokens[i].ty == '-') {
-            // Consume '-'
-            i++;
-
-            if (tokens[i].ty != TK_NUM) error(i);
-            printf("        sub rax, %d\n", tokens[i].val);
-            // Consume NUM
-            i++;
-            continue;
-        }
-
-        error(i);
-    }
-
-
+    printf("        pop rax\n");
     printf("        ret\n");
     return 0;
 }
