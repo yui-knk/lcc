@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-
+// Token
 enum {
     // You can use arbitrary ASCII char as token type
     TK_NUM = 256, // Number
@@ -19,7 +19,41 @@ typedef struct {
 #define TOKENS_LEN 100
 
 token_t tokens[TOKENS_LEN];
+int pos = 0;
 
+// Node
+enum {
+    // You can use arbitrary ASCII char as node type
+    ND_NUM = 256, // Number
+};
+
+typedef struct Node {
+    int ty;           // Type of node (operator or number)
+    struct Node *lhs; // Only used when type is a operator
+    struct Node *rhs; // Only used when type is a operator
+    int val;          // Only used when type is a number
+} NODE;
+
+static NODE*
+new_node_op(int op, NODE *lhs, NODE *rhs)
+{
+    NODE *node = malloc(sizeof(NODE));
+    node->ty = op;
+    node->lhs = lhs;
+    node->rhs = rhs;
+
+    return node;
+}
+
+static NODE*
+new_node_num(int num)
+{
+    NODE *node = malloc(sizeof(NODE));
+    node->ty = ND_NUM;
+    node->val = num;
+
+    return node;
+}
 
 static void
 tokenize(char *p) {
@@ -61,12 +95,105 @@ tokenize(char *p) {
 }
 
 // i is index
+static void errors (char *msg, int i) __attribute__ ((__noreturn__));
+static void
+errors(char *msg, int i)
+{
+    fprintf(stderr, msg, tokens[i].input);
+    exit(1);
+}
+
+// i is index
+static void error (int i) __attribute__ ((__noreturn__));
 static void
 error(int i)
 {
-    fprintf(stderr, "Unexpected token %s\n", tokens[i].input);
-    exit(1);
+    errors("Unexpected token %s\n", i);
 }
+
+static NODE* mul();
+static NODE* term();
+
+/*
+ * expr: mul
+ *     | mul "+" expr
+ *     | mul "-" expr
+ */
+static NODE*
+expr()
+{
+    NODE *lhs = mul();
+
+    if (tokens[pos].ty == '+') {
+        // Consume '+'
+        pos++;
+        return(new_node_op('+', lhs, expr()));
+    }
+
+    if (tokens[pos].ty == '-') {
+        // Consume '-'
+        pos++;
+        return(new_node_op('-', lhs, expr()));
+    }
+
+    return lhs;
+}
+
+/*
+ * mul: term
+ *    | term "*" mul
+ *    | term "/" mul
+ */
+static NODE*
+mul()
+{
+    NODE *lhs = term();
+
+    if (tokens[pos].ty == '*') {
+        // Consume '*'
+        pos++;
+        return(new_node_op('*', lhs, mul()));
+    }
+
+    if (tokens[pos].ty == '/') {
+        // Consume '/'
+        pos++;
+        return(new_node_op('/', lhs, mul()));
+    }
+
+    return lhs;
+}
+
+/*
+ * term: number
+ *     | "(" expr ")"
+ */
+static NODE*
+term()
+{
+    if (tokens[pos].ty == TK_NUM) {
+        return new_node_num(tokens[pos++].val);
+    }
+
+    if (tokens[pos].ty == '(') {
+        NODE *node;
+
+        // Consume '('
+        pos++;
+        node = expr();
+
+        if (tokens[pos].ty != ')') {
+            errors("')' is expected but '%s' is given.", pos);
+        }
+
+        // Consume ')'
+        pos++;
+        return node;
+    }
+
+    errors("Unexpected token '%s' is given.", pos);
+}
+
 
 int
 main(int argc, char** argv)
@@ -79,6 +206,8 @@ main(int argc, char** argv)
     }
 
     tokenize(argv[1]);
+    // NODE *node = expr();
+    expr();
 
     printf(".intel_syntax noprefix\n");
     printf(".global main\n\n");
