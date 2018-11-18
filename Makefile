@@ -12,5 +12,5 @@ build:
 clean:
 	rm -rf $(BUILD_DIR)
 
-test:
+test: build
 	BUILD_DIR=$(BUILD_DIR) ./test.sh
