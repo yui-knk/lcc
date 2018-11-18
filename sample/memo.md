@@ -21,3 +21,19 @@ In this case `eax` is a backward-compatible fashion as (the lower) 32-bit regist
 Ref: https://software.intel.com/en-us/articles/introduction-to-x64-assembly
 
 
+## test2.s
+
+```shell
+$ make
+$ objdump -d -M intel build/test2
+
+...
+00000000004004ed <main>:
+  4004ed: 48 c7 c0 2a 00 00 00  mov    rax,0x2a
+  4004f4: c3                    ret
+  4004f5: 66 2e 0f 1f 84 00 00  nop    WORD PTR cs:[rax+rax*1+0x0]
+  4004fc: 00 00 00
+  4004ff: 90                    nop
+...
+```
+
